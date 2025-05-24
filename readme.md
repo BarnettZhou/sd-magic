@@ -20,6 +20,8 @@ docker-compose up -d
 
 前端开发请在 frontend 目录下进行，使用 `npm run dev` 即可启动开发服务器。
 
+启动本地开发服务后，如果你已经启动了 `backend` 容器 和 `db` 容器，即可访问 `sd-magic`。
+
 在`/frontend/src/config/api.ts`中指定了后端 API 的地址为`http://localhost:8000`，如果遇到端口占用，可自行修改。
 
 ## 前端构建
