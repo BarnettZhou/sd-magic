@@ -1,8 +1,6 @@
 from fastapi import APIRouter, HTTPException, Depends, Query
 from sqlalchemy.orm import Session
-from sqlalchemy import or_
 from typing import List, Optional
-from datetime import datetime
 from pydantic import BaseModel
 from database import get_db
 from models.prompt import Prompt, PromptCategory
@@ -100,7 +98,25 @@ async def get_prompts(
     
     # 应用过滤条件
     if category_id is not None:
-        query = query.filter(Prompt.category_id == category_id)
+        # 获取当前分类及其所有子分类的ID
+        category_ids = [category_id]
+        current_category = db.query(PromptCategory).filter(PromptCategory.id == category_id).first()
+        if current_category:
+            # 递归获取所有子分类ID
+            def get_child_categories(cat_id):
+                child_ids = []
+                children = db.query(PromptCategory).filter(PromptCategory.parent_id == cat_id).all()
+                for child in children:
+                    child_ids.append(child.id)
+                    child_ids.extend(get_child_categories(child.id))
+                return child_ids
+            
+            child_ids = get_child_categories(category_id)
+            category_ids.extend(child_ids)
+            
+            # 过滤属于当前分类或其任何子分类的prompt
+            query = query.filter(Prompt.category_id.in_(category_ids))
+    
     if original_text:
         query = query.filter(Prompt.original_text.ilike(f"%{original_text}%"))
     if chinese_translation:
