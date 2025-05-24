@@ -143,7 +143,7 @@ const handleCategorySubmit = async () => {
 }
 
 // 分类选择处理
-const handleCategorySelect = (category: CategoryData) => {
+const handleCategorySelect = (category: CategoryData | null) => {
   selectedCategory.value = category
 }
 
@@ -334,7 +334,13 @@ watch(selectedCategory, () => {
 const handleSearch = () => {
   currentPage.value = 1
   noMoreData.value = false
-  fetchPrompts(1)
+  fetchPrompts()
+}
+
+const updatePrompts = () => {
+  currentPage.value = 1
+  noMoreData.value = false
+  fetchPrompts()
 }
 
 // 滚动加载
@@ -497,6 +503,13 @@ const toggleCart = () => {
     <el-main class="prompt-main" @scroll="handleScroll">
       <!-- 顶部操作栏 -->
       <div class="prompt-header">
+        <div class="category-filter">
+          <span>当前分类：</span>
+          <el-tag v-if="!selectedCategory" type="info">全部分类</el-tag>
+          <el-tag v-else type="success" closable @close="handleCategorySelect(null)">
+            {{ selectedCategory.name }}
+          </el-tag>
+        </div>
         <el-input
           v-model="searchQuery"
           placeholder="搜索提示词..."
@@ -695,15 +708,29 @@ const toggleCart = () => {
 
 .prompt-header {
   display: flex;
-  justify-content: space-between;
   align-items: center;
-  margin-bottom: 20px;
+  gap: 16px;
+  padding: 16px;  
+  background: var(--el-bg-color);
+  border-bottom: 1px solid var(--el-border-color);
+}
+
+.category-filter {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.search-input {
+  flex: 1;
 }
 
 .prompt-list {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
   gap: 20px;
+  margin-top: 20px;
 }
 
 .prompt-card {
