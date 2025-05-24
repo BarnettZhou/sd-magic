@@ -27,6 +27,12 @@ class PromptResponse(BaseModel):
         "from_attributes": True
     }
 
+class PaginatedResponse(BaseModel):
+    results: List[PromptResponse]
+    count: int
+    next: Optional[str] = None
+    previous: Optional[str] = None
+
 @router.post("/", response_model=PromptResponse)
 async def create_prompt(prompt: PromptCreate, db: Session = Depends(get_db)):
     # 检查分类是否存在
@@ -85,45 +91,68 @@ async def delete_prompt(prompt_id: int, db: Session = Depends(get_db)):
     db.commit()
     return {"message": "Prompt deleted successfully"}
 
-@router.get("/", response_model=List[PromptResponse])
+@router.get("/", response_model=PaginatedResponse)
 async def get_prompts(
     db: Session = Depends(get_db),
     category_id: Optional[int] = None,
     original_text: Optional[str] = None,
     chinese_translation: Optional[str] = None,
+    search: Optional[str] = None,
     skip: int = Query(default=0, ge=0),
     limit: int = Query(default=30, le=100)
 ):
+    # 获取总数
+    total_count = db.query(Prompt).count()
+    
     query = db.query(Prompt)
     
     # 应用过滤条件
     if category_id is not None:
         # 获取当前分类及其所有子分类的ID
-        category_ids = [category_id]
-        current_category = db.query(PromptCategory).filter(PromptCategory.id == category_id).first()
-        if current_category:
-            # 递归获取所有子分类ID
-            def get_child_categories(cat_id):
-                child_ids = []
-                children = db.query(PromptCategory).filter(PromptCategory.parent_id == cat_id).all()
-                for child in children:
-                    child_ids.append(child.id)
-                    child_ids.extend(get_child_categories(child.id))
-                return child_ids
-            
-            child_ids = get_child_categories(category_id)
-            category_ids.extend(child_ids)
-            
-            # 过滤属于当前分类或其任何子分类的prompt
-            query = query.filter(Prompt.category_id.in_(category_ids))
+        subcategories = db.query(PromptCategory).filter(
+            PromptCategory.parent_id == category_id
+        ).all()
+        category_ids = [category_id] + [c.id for c in subcategories]
+        query = query.filter(Prompt.category_id.in_(category_ids))
     
-    if original_text:
-        query = query.filter(Prompt.original_text.ilike(f"%{original_text}%"))
-    if chinese_translation:
-        query = query.filter(Prompt.chinese_translation.ilike(f"%{chinese_translation}%"))
+    # 处理搜索条件
+    search_text = original_text or search
+    if search_text:
+        query = query.filter(
+            (Prompt.original_text.ilike(f"%{search_text}%")) |
+            (Prompt.chinese_translation.ilike(f"%{search_text}%"))
+        )
     
     # 应用分页
-    total = query.count()
     prompts = query.offset(skip).limit(limit).all()
     
-    return prompts
+    # 构建分页响应
+    next_url = None
+    previous_url = None
+    
+    if skip + limit < total_count:
+        next_params = f"?skip={skip + limit}&limit={limit}"
+        if category_id:
+            next_params += f"&category_id={category_id}"
+        if original_text:
+            next_params += f"&original_text={original_text}"
+        if chinese_translation:
+            next_params += f"&chinese_translation={chinese_translation}"
+        next_url = f"/api/prompts/{next_params}"
+    
+    if skip > 0:
+        previous_params = f"?skip={max(0, skip - limit)}&limit={limit}"
+        if category_id:
+            previous_params += f"&category_id={category_id}"
+        if original_text:
+            previous_params += f"&original_text={original_text}"
+        if chinese_translation:
+            previous_params += f"&chinese_translation={chinese_translation}"
+        previous_url = f"/api/prompts{previous_params}"
+    
+    return PaginatedResponse(
+        results=prompts,
+        count=total_count,
+        next=next_url,
+        previous=previous_url
+    )

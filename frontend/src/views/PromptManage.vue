@@ -174,38 +174,61 @@ const prompts = ref<Array<{
   category_id: number
   categoryPath?: string[]
 }>>([])
+const nextPageUrl = ref<string | null>(null)
 
 // 获取提示词列表
-const fetchPrompts = async (page = 1) => {
+const fetchPrompts = async (url: string | null = null): Promise<string | null> => {
   try {
     loading.value = true
-    const params = new URLSearchParams({
-      page: page.toString(),
-      per_page: perPage.value.toString(),
-      ...(selectedCategory.value?.id && { category_id: selectedCategory.value.id.toString() }),
-      ...(searchQuery.value && { search: searchQuery.value })
-    })
-
-    const response = await fetch(`${API_HOST}/api/prompts/?${params.toString()}`)
-    if (!response.ok) throw new Error('获取提示词失败')
-    const data = await response.json()
     
-    // 处理两种响应格式：
-    // 1. 直接返回数组：[{}]
-    // 2. 返回分页对象：{ results: [], count: 0, next: null }
-    const results = Array.isArray(data) ? data : data.results || []
-    
-    // 如果是第一页，替换数据；否则追加数据
-    if (page === 1) {
-      prompts.value = results
+    // 如果没有提供URL，构建初始查询
+    if (!url) {
+      const params = new URLSearchParams({
+        skip: '0',
+        limit: perPage.value.toString(),
+        ...(selectedCategory.value?.id && { category_id: selectedCategory.value.id.toString() }),
+        ...(searchQuery.value && { search: searchQuery.value })
+      })
+      const requestUrl = `${API_HOST}/api/prompts/?${params.toString()}`
+      const response = await fetch(requestUrl)
+      if (!response.ok) throw new Error('获取提示词失败')
+      const data = await response.json()
+      
+      if (!data.results) {
+        throw new Error('无效的响应格式')
+      }
+      
+      prompts.value = data.results
+      total.value = data.count
+      noMoreData.value = !data.next
+      
+      if (data.next) {
+        nextPageUrl.value = `${API_HOST}${data.next}`
+      }
+      
+      return data.next ? `${API_HOST}${data.next}` : null
     } else {
-      prompts.value = [...prompts.value, ...results]
+      const response = await fetch(url)
+      if (!response.ok) throw new Error('获取提示词失败')
+      const data = await response.json()
+      
+      if (!data.results) {
+        throw new Error('无效的响应格式')
+      }
+      
+      prompts.value = [...prompts.value, ...data.results]
+      total.value += data.results.length
+      noMoreData.value = !data.next
+      
+      if (data.next) {
+        nextPageUrl.value = `${API_HOST}${data.next}`
+      }
+      
+      return data.next ? `${API_HOST}${data.next}` : null
     }
-    
-    total.value = Array.isArray(data) ? results.length : data.count || 0
-    noMoreData.value = Array.isArray(data) ? false : data.next === null
-  } catch (error) {
-    ElMessage.error('获取提示词列表失败')
+  } catch (error: unknown) {
+    ElMessage.error(error instanceof Error ? error.message : '获取提示词列表失败')
+    return null
   } finally {
     loading.value = false
   }
@@ -228,7 +251,7 @@ const createPrompt = async () => {
     ElMessage.success('创建提示词成功')
     promptFormVisible.value = false
     currentPage.value = 1 // 重置到第一页
-    await fetchPrompts(1)
+    await fetchPrompts(null)
   } catch (error) {
     ElMessage.error(error instanceof Error ? error.message : '创建提示词失败')
   }
@@ -255,7 +278,7 @@ const updatePrompt = async () => {
     // 更新后总是从第1页开始重新获取数据，以防止数据重复
     currentPage.value = 1
     noMoreData.value = false
-    await fetchPrompts(1)
+    await fetchPrompts(null)
   } catch (error) {
     ElMessage.error(error instanceof Error ? error.message : '更新提示词失败')
   }
@@ -282,7 +305,7 @@ const deletePrompt = async (id: number) => {
     }
 
     ElMessage.success('删除提示词成功')
-    await fetchPrompts(currentPage.value)
+    await fetchPrompts(null)
   } catch (error) {
     if (error !== 'cancel') {
       ElMessage.error(error instanceof Error ? error.message : '删除提示词失败')
@@ -327,7 +350,7 @@ const handlePromptSubmit = async () => {
 watch(selectedCategory, () => {
   currentPage.value = 1
   noMoreData.value = false
-  fetchPrompts(1)
+  fetchPrompts(null)
 })
 
 // 处理搜索
@@ -344,20 +367,50 @@ const updatePrompts = () => {
 }
 
 // 滚动加载
+const loadMore = async () => {
+  if (loading.value || noMoreData.value) return
+  
+  if (!nextPageUrl.value) return
+  
+  try {
+    loading.value = true
+    const response = await fetch(nextPageUrl.value)
+    if (!response.ok) throw new Error('加载失败')
+    
+    const data = await response.json()
+    if (!data.results) throw new Error('无效的响应格式')
+    
+    prompts.value = [...prompts.value, ...data.results]
+    total.value += data.results.length
+    noMoreData.value = !data.next
+    
+    if (data.next) {
+      nextPageUrl.value = `${API_HOST}${data.next}`
+    } else {
+      nextPageUrl.value = null
+    }
+  } catch (error: unknown) {
+    ElMessage.error(error instanceof Error ? error.message : '加载失败')
+  } finally {
+    loading.value = false
+  }
+}
+
+// 滚动事件处理
 const handleScroll = (event: Event) => {
   const element = event.target as HTMLElement
   if (loading.value || noMoreData.value) return
-
+  
   const { scrollHeight, scrollTop, clientHeight } = element
   if (scrollHeight - scrollTop - clientHeight < 50) {
-    fetchPrompts(currentPage.value + 1)
+    loadMore()
   }
 }
 
 // 初始化
 onMounted(() => {
   fetchCategories(),
-  fetchPrompts()
+  fetchPrompts(null)
 })
 
 // 购物车数据
@@ -405,7 +458,7 @@ const templateForm = ref({
   name: ''
 })
 
-// 保存为方案
+// 保存为方案弹窗
 const saveAsPlan = () => {
   if (!cartItems.value || cartItems.value.length === 0) {
     ElMessage.warning('购物车为空')
