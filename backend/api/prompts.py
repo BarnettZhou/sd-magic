@@ -99,7 +99,7 @@ async def get_prompts(
     chinese_translation: Optional[str] = None,
     search: Optional[str] = None,
     skip: int = Query(default=0, ge=0),
-    limit: int = Query(default=30, le=100)
+    limit: int = Query(default=50, le=100)
 ):
     # 获取总数
     total_count = db.query(Prompt).count()

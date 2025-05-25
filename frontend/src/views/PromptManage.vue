@@ -152,7 +152,7 @@ const searchQuery = ref('')
 
 // 分页相关
 const currentPage = ref(1)
-const perPage = ref(20)
+const perPage = ref(50)
 const loading = ref(false)
 const noMoreData = ref(false)
 const total = ref(0)
