@@ -50,6 +50,15 @@ async def create_prompt(prompt: PromptCreate, db: Session = Depends(get_db)):
     db.add(db_prompt)
     db.commit()
     db.refresh(db_prompt)
+
+    # 获取分类路径
+    category_path = []
+    current_category = db.query(PromptCategory).filter(PromptCategory.id == prompt.category_id).first()
+    while current_category:
+        category_path.insert(0, current_category.name)
+        current_category = db.query(PromptCategory).filter(PromptCategory.id == current_category.parent_id).first()
+    db_prompt.category_path = category_path
+    
     return db_prompt
 
 @router.put("/{prompt_id}", response_model=PromptResponse)
@@ -80,6 +89,15 @@ async def update_prompt(prompt_id: int, prompt: PromptUpdate, db: Session = Depe
     
     db.commit()
     db.refresh(db_prompt)
+    
+    # 获取分类路径
+    category_path = []
+    current_category = db.query(PromptCategory).filter(PromptCategory.id == update_data["category_id"]).first()
+    while current_category:
+        category_path.insert(0, current_category.name)
+        current_category = db.query(PromptCategory).filter(PromptCategory.id == current_category.parent_id).first()
+    db_prompt.category_path = category_path
+    
     return db_prompt
 
 @router.delete("/{prompt_id}")
