@@ -1,0 +1,1 @@
+docker exec -t sd-magic-db-1 pg_dump -U sdmagic sdmagic > ../backup/backup.sql

@@ -1,5 +1,7 @@
 .vscode
 
+backend
+
 frontend/.vscode
 frontend/node_modules
 
