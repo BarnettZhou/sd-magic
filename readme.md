@@ -48,6 +48,22 @@ npm run build-and-copy-linux
 
 完成后，将在 `backend/static` 目录下生成静态文件
 
+## 数据备份
+
+Windows 下执行
+
+```bash
+./scripts/backup_db.bat
+```
+
+Linux 下执行
+
+```bash
+./scripts/backup_db.sh
+```
+
+即可备份数据库，备份后的文件在 backup 目录下
+
 ## TODO
 
 - 使用 LLM 生成提示词
