@@ -18,6 +18,10 @@ import { ElMenu, ElMenuItem } from 'element-plus'
 </template>
 
 <style scoped>
+.el-main{
+  padding: 0;
+}
+
 .el-container {
   height: 100vh;
   width: 100%;

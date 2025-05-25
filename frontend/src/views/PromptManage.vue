@@ -516,7 +516,17 @@ const copyPrompts = () => {
     })
 }
 
-// 购物车相关方法
+// 复制提示词
+const copyPromptText = (text: string) => {
+  navigator.clipboard.writeText(text)
+    .then(() => {
+      ElMessage.success('已复制到剪贴板')
+    })
+    .catch(() => {
+      ElMessage.error('复制失败，请重试')
+    })
+}
+
 const toggleCart = () => {
   cartVisible.value = !cartVisible.value
 }
@@ -535,7 +545,7 @@ const toggleCart = () => {
       <el-tree :data="categories" node-key="id" :props="{
         label: 'name',
         children: 'children'
-      }" @node-click="handleCategorySelect" default-expand-all :expand-on-click-node="false">
+      }" @node-click="handleCategorySelect" default-expand-all :expand-on-click-node="false" class="category-tree">
         <template #default="{ node, data }">
           <div class="custom-tree-node">
             <span>{{ node.label }}</span>
@@ -587,6 +597,7 @@ const toggleCart = () => {
             </div>
           </div>
           <div class="prompt-actions">
+            <el-button :icon="DocumentCopy" circle @click="copyPromptText(prompt.original_text)" />
             <el-button :icon="ShoppingCart" circle @click="addToCart(prompt)" />
             <el-button :icon="Edit" circle @click="openEditPromptForm(prompt)" />
             <el-button :icon="Delete" circle type="danger" @click="deletePrompt(prompt.id)" />
@@ -737,14 +748,21 @@ const toggleCart = () => {
 
 .category-aside {
   border-right: 1px solid #dcdfe6;
-  padding: 20px;
 }
 
 .category-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 20px;
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  background-color: var(--el-bg-color);
+  padding: 0px 20px;
+}
+
+.category-tree {
+  padding: 20px;
 }
 
 .custom-tree-node {
@@ -752,19 +770,21 @@ const toggleCart = () => {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding-right: 8px;
 }
 
 .prompt-main {
-  padding: 20px;
+  padding: 0px;
 }
 
 .prompt-header {
   display: flex;
   align-items: center;
-  gap: 16px;
-  padding: 16px;  
-  background: var(--el-bg-color);
+  gap: 20px;
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  background-color: var(--el-bg-color);
+  padding: 16px;
   border-bottom: 1px solid var(--el-border-color);
 }
 
@@ -783,7 +803,7 @@ const toggleCart = () => {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
   gap: 20px;
-  margin-top: 20px;
+  padding: 20px;
 }
 
 .prompt-card {
