@@ -11,8 +11,8 @@
     "type-check": "vue-tsc --build",
     "lint": "eslint . --fix",
     "format": "prettier --write src/",
-    "build-and-copy-win": "npm run build && xcopy /E /I /Y /D dist ..\\backend\\static",
-    "build-and-copy-linux": "npm run build && rm -rf ../../backend/static && cp -r dist ../../backend/static"
+    "build-and-copy-win": "npm run build && rmdir /S /Q ..\\backend\\static && xcopy /E /I /Y /D dist ..\\backend\\static",
+    "build-and-copy-linux": "npm run build && rm -rf ../backend/static && cp -r dist ../backend/static"
   },
   "dependencies": {
     "@element-plus/icons-vue": "^2.3.1",
