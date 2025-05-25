@@ -1,6 +1,6 @@
 # sd-magic
 
-sd-magic 是一个用于管理 AI 提示词的工具，它可以帮助用户创建、管理和组织提示词。
+sd-magic 是一个用于管理 Stable Diffusion 提示词的工具，它可以帮助你创建、管理和组织提示词。
 
 ## 容器运行
 
@@ -47,3 +47,8 @@ npm run build-and-copy-linux
 ```
 
 完成后，将在 `backend/static` 目录下生成静态文件
+
+## TODO
+
+- 使用 LLM 生成提示词
+- 提示词自动翻译

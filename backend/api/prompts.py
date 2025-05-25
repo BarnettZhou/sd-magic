@@ -22,6 +22,7 @@ class PromptResponse(BaseModel):
     original_text: str
     chinese_translation: Optional[str]
     category_id: int
+    category_path: List[str]
     
     model_config = {
         "from_attributes": True
@@ -123,8 +124,23 @@ async def get_prompts(
             (Prompt.chinese_translation.ilike(f"%{search_text}%"))
         )
     
-    # 应用分页
-    prompts = query.offset(skip).limit(limit).all()
+    # 获取所有提示词及其分类路径
+    prompts = []
+    for prompt in query.offset(skip).limit(limit).all():
+        # 获取分类路径
+        category_path = []
+        current_category = db.query(PromptCategory).filter(PromptCategory.id == prompt.category_id).first()
+        while current_category:
+            category_path.insert(0, current_category.name)
+            current_category = db.query(PromptCategory).filter(PromptCategory.id == current_category.parent_id).first()
+        
+        prompts.append({
+            "id": prompt.id,
+            "original_text": prompt.original_text,
+            "chinese_translation": prompt.chinese_translation,
+            "category_id": prompt.category_id,
+            "category_path": category_path
+        })
     
     # 构建分页响应
     next_url = None

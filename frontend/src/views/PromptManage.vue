@@ -172,7 +172,7 @@ const prompts = ref<Array<{
   original_text: string
   chinese_translation: string
   category_id: number
-  categoryPath?: string[]
+  category_path?: string[]
 }>>([])
 const nextPageUrl = ref<string | null>(null)
 
@@ -535,7 +535,7 @@ const toggleCart = () => {
       <el-tree :data="categories" node-key="id" :props="{
         label: 'name',
         children: 'children'
-      }" @node-click="handleCategorySelect" default-expand-all>
+      }" @node-click="handleCategorySelect" default-expand-all :expand-on-click-node="false">
         <template #default="{ node, data }">
           <div class="custom-tree-node">
             <span>{{ node.label }}</span>
@@ -580,7 +580,7 @@ const toggleCart = () => {
             <div class="prompt-text">{{ prompt.original_text }}</div>
             <div class="prompt-translation">{{ prompt.chinese_translation }}</div>
             <div class="prompt-category">
-              <el-tag v-for="(cat, index) in prompt.categoryPath" :key="index" size="small"
+              <el-tag v-for="(cat, index) in prompt.category_path" :key="index" size="small"
                 :type="index === 0 ? '' : 'info'">
                 {{ cat }}
               </el-tag>
